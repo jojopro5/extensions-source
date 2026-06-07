@@ -34,37 +34,16 @@ jobs:
 
       - name: Prepare repo folder
         run: |
-          mkdir -p repo/apk
-          find src/en/harimanga/build/outputs/apk/release -name "*.apk" -exec cp {} repo/apk/ \;
+          mkdir -p repo
+          find src/en/harimanga/build/outputs/apk/release -name "*.apk" -exec cp {} repo/ \;
 
       - name: Generate index files
         run: |
-          APK_FILE=$(ls repo/apk/*.apk | head -n 1)
+          APK_FILE=$(ls repo/*.apk | head -n 1)
           APK_NAME=$(basename "$APK_FILE")
           APK_SIZE=$(stat -c%s "$APK_FILE")
           cat > repo/index.min.json <<EOF
-          [
-            {
-              "name": "Harimanga",
-              "pkg": "eu.kanade.tachiyomi.extension.en.harimanga",
-              "apk": "apk/$APK_NAME",
-              "lang": "en",
-              "code": 1,
-              "version": "1.0.0",
-              "nsfw": 0,
-              "hasReadme": 0,
-              "hasChangelog": 0,
-              "sources": [
-                {
-                  "name": "Harimanga",
-                  "lang": "en",
-                  "id": "0",
-                  "baseUrl": "https://harimanga.vip"
-                }
-              ],
-              "apkSize": $APK_SIZE
-            }
-          ]
+          [{"name":"Tachiyomi: Harimanga","pkg":"eu.kanade.tachiyomi.extension.en.harimanga","apk":"$APK_NAME","lang":"en","code":54,"version":"1.4.54","nsfw":0,"sources":[{"name":"Harimanga","lang":"en","id":"0","baseUrl":"https://harimanga.vip"}],"apkSize":$APK_SIZE}]
           EOF
           cp repo/index.min.json repo/index.json
 
