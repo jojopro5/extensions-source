@@ -1,0 +1,76 @@
+name: Build Harimanga Extension Repo
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/en/harimanga/**"
+      - ".github/workflows/build-harimanga-repo.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build Harimanga extension
+        run: ./gradlew :src:en:harimanga:assembleRelease
+
+      - name: Prepare repo folder
+        run: |
+          mkdir -p repo/apk
+          find src/en/harimanga/build/outputs/apk/release -name "*.apk" -exec cp {} repo/apk/ \;
+
+      - name: Generate index files
+        run: |
+          APK_FILE=$(ls repo/apk/*.apk | head -n 1)
+          APK_NAME=$(basename "$APK_FILE")
+          APK_SIZE=$(stat -c%s "$APK_FILE")
+          cat > repo/index.min.json <<EOF
+          [
+            {
+              "name": "Harimanga",
+              "pkg": "eu.kanade.tachiyomi.extension.en.harimanga",
+              "apk": "apk/$APK_NAME",
+              "lang": "en",
+              "code": 1,
+              "version": "1.0.0",
+              "nsfw": 0,
+              "hasReadme": 0,
+              "hasChangelog": 0,
+              "sources": [
+                {
+                  "name": "Harimanga",
+                  "lang": "en",
+                  "id": "0",
+                  "baseUrl": "https://harimanga.vip"
+                }
+              ],
+              "apkSize": $APK_SIZE
+            }
+          ]
+          EOF
+          cp repo/index.min.json repo/index.json
+
+      - name: Deploy to repo branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: repo
+          publish_dir: ./repo
